@@ -49,15 +49,19 @@ app.get("/u/:id", (req, res) => {
 });
 
 
-// handle POST request
+// handle POST request for new id
 app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  //res.send("Ok"); // Respond with 'Ok' (we will replace this)
   const newId = generateRandomString();
   urlDatabase[newId] = req.body.longURL;
   res.redirect(`/urls/${newId}`);
 });
 
+// handle POST request for delete
+app.post("/urls/:id/delete", (req, res) => { 
+  const idToBeDeleted = req.params.id;  
+  delete urlDatabase[idToBeDeleted];   
+  res.redirect("/urls");
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
