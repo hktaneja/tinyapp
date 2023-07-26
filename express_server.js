@@ -63,6 +63,15 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls");
 });
 
+// handle POST request for edit link
+app.post("/urls/:id", (req, res) => { 
+  const idToBeEdited = req.params.id;
+  urlDatabase[idToBeEdited] = req.body.longURL;
+  res.redirect("/urls");
+});
+
+
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
