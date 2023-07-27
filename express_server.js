@@ -69,7 +69,11 @@ app.post("/urls/:id", (req, res) => {
   urlDatabase[idToBeEdited] = req.body.longURL;
   res.redirect("/urls");
 });
-
+// handle POST request for login
+app.post("/login", (req, res)=>{
+  res.cookie("username", req.body.username);
+  res.redirect("/urls");
+})
 
 
 app.listen(PORT, () => {
