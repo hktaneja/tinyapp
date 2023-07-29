@@ -43,57 +43,67 @@ function generateRandomString() {
   return randomString;
 }
 
+// User LookUp Function
+const getUserByEmail = function (email) {
+  for (const key in users) {
+    if (users[key].email === email) {
+      return users[key]; // Return the entire user object if found
+    }
+  }
+  return null; // Return null if not found
+};
+
+
 // route definitions 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.send("Welcome!");
 });
 
-app.get("/register",(req,res)=>{ 
+app.get("/login", (req, res) => {
   const templateVars = { user: users[req.cookies.user_id]};
   res.render("login", templateVars); 
 });
 
+
+app.get("/register",(req,res)=>{ 
+  const templateVars = { user: users[req.cookies.user_id]};
+  res.render("registration", templateVars); 
+});
+
 app.get("/urls", (req, res) => {
   let  templateVars = {};
-  for(let key in users) {
-    if(key === req.cookies["user_id"]) {
-      templateVars = { user: users[req.cookies.user_id], urls: urlDatabase};
-      break;
-    }
-    else {
-      templateVars = { user: {},urls: urlDatabase};
-    }
-   }
- res.render("urls_index", templateVars);
+  const user = getUserByEmail(req.cookies.user_id)
+  if (user) {
+    templateVars = { user: user, urls: urlDatabase };
+    res.render("urls_index", templateVars);
+  } else {
+    templateVars = { user: null, urls: urlDatabase };
+    res.status(400).send("Please Login first.");
+  }
 });
 
 app.get("/urls/new", (req, res) => {
   let  templateVars = {};
-  for(let key in users) {
-    if(key === req.cookies["user_id"]) {
-      templateVars = { user: users[req.cookies.user_id] };
-      break;
-    }
-    else {
-      templateVars = {user: {}};
-    }
-   }
-  res.render("urls_new", templateVars); 
-  
+  const user = getUserByEmail(req.cookies.user_id)
+  if (user) {
+    templateVars = { user: user};
+    res.render("urls_new", templateVars);
+  } else {
+    templateVars = { user: null};
+    res.status(400).send("Please Login first.");
+  }
 });
 
 app.get("/urls/:id", (req, res) => {
   let  templateVars = {};
-  for(let key in users) {
-    if(key === req.cookies["user_id"]) {
-      templateVars = { user: users[req.cookies.user_id],id: req.params.id, longURL:urlDatabase[req.params.id]};       
-      break;
-    }
-    else {
-      templateVars = { user: {},id: req.params.id, longURL:urlDatabase[req.params.id]};
-    }
-   }
-  res.render("urls_show", templateVars);
+  const user = getUserByEmail(req.cookies.user_id)
+  if (user) {
+    templateVars = { user: user,id: req.params.id, longURL:urlDatabase[req.params.id]};
+    res.render("urls_show", templateVars);
+  } else {
+    templateVars = { user: null,id: req.params.id, longURL:urlDatabase[req.params.id]};
+    res.status(400).send("Please Login first.");
+  }  
 });
 
 app.get("/u/:id", (req, res) => {
@@ -125,26 +135,41 @@ app.post("/urls/:id", (req, res) => {
 
 // handle POST request for login
 app.post("/login", (req, res)=>{
-  res.cookie("user_id", req.body.username);
-  res.redirect("/urls");
+  const userEmail = req.body.email; 
+  const user = getUserByEmail(userEmail);
+  if (user && user.password === req.body.password) {
+    res.cookie("user_id", userEmail); // Store the email in the cookie
+    res.redirect("/urls");
+  } else {
+    res.status(403).send("Invalid email or password.");
+  }
 })
-// handle POST request for register
 
+// handle POST request for register
 app.post("/register", (req, res)=>{
-  const newUserId = generateRandomString();
-  const newUser = {
-    id: newUserId,
-    email: req.body.email,
-    password: req.body.password,
-  };
-  users[newUserId] = newUser;
-  res.cookie("user_id", newUserId);
-  res.redirect("/urls");
-})
+  if (req.body.email.trim() !== '' && req.body.password.trim() !== '') {
+    const user = getUserByEmail(req.body.email.trim());
+    if (user) {
+      res.status(400).send("This email already exists.");      
+    } else {
+      const newUserId = generateRandomString();
+      const newUser = {
+        id: newUserId,
+        email: req.body.email,
+        password: req.body.password,
+      };
+      users[newUserId] = newUser;
+      res.cookie("user_id", req.body.email);
+      res.redirect("/urls");
+    }
+  } else {
+    res.status(400).send("Email and password cannot be empty.");
+  }  
+});
 // handle POST request for logout
 app.post("/logout", (req, res)=>{
   res.clearCookie('user_id');
-  res.redirect("/urls");
+  res.redirect("/login");
 })
 
 app.listen(PORT, () => {
