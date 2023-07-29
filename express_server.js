@@ -1,9 +1,28 @@
 const express = require("express");
+const cookieParser = require('cookie-parser'); // Require cookie-parser
+
 const app = express();
+app.use(cookieParser()); // Use cookie-parser as middleware
+
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 
+//users database
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
+//urls database
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -29,17 +48,51 @@ app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
+app.get("/register",(req,res)=>{ 
+  const templateVars = { user: users[req.cookies.user_id]};
+  res.render("login", templateVars); 
+});
+
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };  
-  res.render("urls_index", templateVars);
+  let  templateVars = {};
+  for(let key in users) {
+    if(key === req.cookies["user_id"]) {
+      templateVars = { user: users[req.cookies.user_id], urls: urlDatabase};
+      break;
+    }
+    else {
+      templateVars = { user: {},urls: urlDatabase};
+    }
+   }
+ res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  let  templateVars = {};
+  for(let key in users) {
+    if(key === req.cookies["user_id"]) {
+      templateVars = { user: users[req.cookies.user_id] };
+      break;
+    }
+    else {
+      templateVars = {user: {}};
+    }
+   }
+  res.render("urls_new", templateVars); 
+  
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL:urlDatabase[req.params.id]};
+  let  templateVars = {};
+  for(let key in users) {
+    if(key === req.cookies["user_id"]) {
+      templateVars = { user: users[req.cookies.user_id],id: req.params.id, longURL:urlDatabase[req.params.id]};       
+      break;
+    }
+    else {
+      templateVars = { user: {},id: req.params.id, longURL:urlDatabase[req.params.id]};
+    }
+   }
   res.render("urls_show", templateVars);
 });
 
@@ -70,7 +123,29 @@ app.post("/urls/:id", (req, res) => {
   res.redirect("/urls");
 });
 
+// handle POST request for login
+app.post("/login", (req, res)=>{
+  res.cookie("user_id", req.body.username);
+  res.redirect("/urls");
+})
+// handle POST request for register
 
+app.post("/register", (req, res)=>{
+  const newUserId = generateRandomString();
+  const newUser = {
+    id: newUserId,
+    email: req.body.email,
+    password: req.body.password,
+  };
+  users[newUserId] = newUser;
+  res.cookie("user_id", newUserId);
+  res.redirect("/urls");
+})
+// handle POST request for logout
+app.post("/logout", (req, res)=>{
+  res.clearCookie('user_id');
+  res.redirect("/urls");
+})
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
