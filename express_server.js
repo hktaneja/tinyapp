@@ -44,6 +44,15 @@ function generateRandomString() {
 }
 
 // User LookUp Function
+const getUserById = function (id) {
+  for (const key in users) {
+    if (users[key].id  === id ) {
+      return users[key]; // Return the entire user object if found
+    }
+  }
+  return null; // Return null if not found
+};
+// Email LookUp Function
 const getUserByEmail = function (email) {
   for (const key in users) {
     if (users[key].email === email) {
@@ -52,6 +61,7 @@ const getUserByEmail = function (email) {
   }
   return null; // Return null if not found
 };
+
 
 
 // route definitions 
@@ -72,7 +82,7 @@ app.get("/register",(req,res)=>{
 
 app.get("/urls", (req, res) => {
   let  templateVars = {};
-  const user = getUserByEmail(req.cookies.user_id)
+  const user = getUserById(req.cookies.user_id)
   if (user) {
     templateVars = { user: user, urls: urlDatabase };
     res.render("urls_index", templateVars);
@@ -84,7 +94,7 @@ app.get("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   let  templateVars = {};
-  const user = getUserByEmail(req.cookies.user_id)
+  const user = getUserById(req.cookies.user_id)
   if (user) {
     templateVars = { user: user};
     res.render("urls_new", templateVars);
@@ -96,7 +106,7 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/urls/:id", (req, res) => {
   let  templateVars = {};
-  const user = getUserByEmail(req.cookies.user_id)
+  const user = getUserById(req.cookies.user_id)
   if (user) {
     templateVars = { user: user,id: req.params.id, longURL:urlDatabase[req.params.id]};
     res.render("urls_show", templateVars);
@@ -110,7 +120,6 @@ app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
-
 
 // handle POST request for new id
 app.post("/urls", (req, res) => {
@@ -146,9 +155,9 @@ app.post("/logout", (req, res)=>{
 // handle POST request for login
 app.post("/login", (req, res)=>{
   const userEmail = req.body.email; 
-  const user = getUserByEmail(userEmail);
+  const user = getUserByEmail(req.body.email);
   if (user && user.password === req.body.password) {
-    res.cookie("user_id", userEmail); // Store the email in the cookie
+    res.cookie("user_id", user.id); // Store the user id in the cookie
     res.redirect("/urls");
   } else {
     res.status(403).send("Invalid email or password.");
@@ -169,7 +178,7 @@ app.post("/register", (req, res)=>{
         password: req.body.password,
       };
       users[newUserId] = newUser;
-      res.cookie("user_id", req.body.email);
+      res.cookie("user_id", newUserId);
       res.redirect("/urls");
     }
   } else {
