@@ -8,6 +8,21 @@ const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 
+//users database
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
+//urls database
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -28,26 +43,67 @@ function generateRandomString() {
   return randomString;
 }
 
+// User LookUp Function
+const getUserByEmail = function (email) {
+  for (const key in users) {
+    if (users[key].email === email) {
+      return users[key]; // Return the entire user object if found
+    }
+  }
+  return null; // Return null if not found
+};
+
+
 // route definitions 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.send("Welcome!");
+});
+
+app.get("/login", (req, res) => {
+  const templateVars = { user: users[req.cookies.user_id]};
+  res.render("login", templateVars); 
+});
+
+
+app.get("/register",(req,res)=>{ 
+  const templateVars = { user: users[req.cookies.user_id]};
+  res.render("registration", templateVars); 
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { username: req.cookies["username"],
-  urls: urlDatabase, };   
-  res.render("urls_index", templateVars);
+  let  templateVars = {};
+  const user = getUserByEmail(req.cookies.user_id)
+  if (user) {
+    templateVars = { user: user, urls: urlDatabase };
+    res.render("urls_index", templateVars);
+  } else {
+    templateVars = { user: null, urls: urlDatabase };
+    res.status(400).send("Please Login first.");
+  }
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"]}; 
-  res.render("urls_new", templateVars); 
-  
+  let  templateVars = {};
+  const user = getUserByEmail(req.cookies.user_id)
+  if (user) {
+    templateVars = { user: user};
+    res.render("urls_new", templateVars);
+  } else {
+    templateVars = { user: null};
+    res.status(400).send("Please Login first.");
+  }
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { username: req.cookies["username"],id: req.params.id, longURL:urlDatabase[req.params.id]};
-  res.render("urls_show", templateVars);
+  let  templateVars = {};
+  const user = getUserByEmail(req.cookies.user_id)
+  if (user) {
+    templateVars = { user: user,id: req.params.id, longURL:urlDatabase[req.params.id]};
+    res.render("urls_show", templateVars);
+  } else {
+    templateVars = { user: null,id: req.params.id, longURL:urlDatabase[req.params.id]};
+    res.status(400).send("Please Login first.");
+  }  
 });
 
 app.get("/u/:id", (req, res) => {
@@ -87,7 +143,44 @@ app.post("/logout", (req, res)=>{
   res.redirect("/urls");
 })
 
+// handle POST request for login
+app.post("/login", (req, res)=>{
+  const userEmail = req.body.email; 
+  const user = getUserByEmail(userEmail);
+  if (user && user.password === req.body.password) {
+    res.cookie("user_id", userEmail); // Store the email in the cookie
+    res.redirect("/urls");
+  } else {
+    res.status(403).send("Invalid email or password.");
+  }
+})
 
+// handle POST request for register
+app.post("/register", (req, res)=>{
+  if (req.body.email.trim() !== '' && req.body.password.trim() !== '') {
+    const user = getUserByEmail(req.body.email.trim());
+    if (user) {
+      res.status(400).send("This email already exists.");      
+    } else {
+      const newUserId = generateRandomString();
+      const newUser = {
+        id: newUserId,
+        email: req.body.email,
+        password: req.body.password,
+      };
+      users[newUserId] = newUser;
+      res.cookie("user_id", req.body.email);
+      res.redirect("/urls");
+    }
+  } else {
+    res.status(400).send("Email and password cannot be empty.");
+  }  
+});
+// handle POST request for logout
+app.post("/logout", (req, res)=>{
+  res.clearCookie('user_id');
+  res.redirect("/login");
+})
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
