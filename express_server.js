@@ -116,9 +116,10 @@ app.get("/register",(req,res)=>{
 
 app.get("/urls", (req, res) => {
   let  templateVars = {}; 
+  let  userURLs ={};
   const user = getUserById(req.session.user_id)
   if (user) {    
-    const userURLs = urlsForUser(user);    
+    userURLs = urlsForUser(user);    
     templateVars = { user: user, urls: userURLs };
     res.render("urls_index", templateVars);
   } else {
@@ -193,7 +194,6 @@ app.post("/urls/:id", (req, res) => {
 
 // handle POST request for login
 app.post("/login", (req, res)=>{
-  const userEmail = req.body.email; 
   const user = helpers.getUserByEmail(req.body.email, users);
   if (user && bcrypt.compareSync(req.body.password, user.password)) {
     //res.cookie("user_id", user.id); // Store the user id in the cookie
