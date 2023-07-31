@@ -1,3 +1,4 @@
+const helpers = require("./helpers");
 const express = require("express");
 var cookieSession = require('cookie-session') // Require cookie-session
 const bcrypt = require("bcryptjs");
@@ -70,15 +71,7 @@ const getUserById = function (id) {
   }
   return null; // Return null if not found
 };
-// Email LookUp Function
-const getUserByEmail = function (email) {
-  for (const key in users) {
-    if (users[key].email === email) {
-      return users[key]; // Return the entire user object if found
-    }
-  }
-  return null; // Return null if not found
-};
+
 
 // URLs of logged in user
 const urlsForUser = function (user) {
@@ -201,7 +194,7 @@ app.post("/urls/:id", (req, res) => {
 // handle POST request for login
 app.post("/login", (req, res)=>{
   const userEmail = req.body.email; 
-  const user = getUserByEmail(req.body.email);
+  const user = helpers.getUserByEmail(req.body.email, users);
   if (user && bcrypt.compareSync(req.body.password, user.password)) {
     //res.cookie("user_id", user.id); // Store the user id in the cookie
     req.session.user_id = user.id;
@@ -214,7 +207,7 @@ app.post("/login", (req, res)=>{
 // handle POST request for register
 app.post("/register", (req, res)=>{
   if (req.body.email.trim() !== '' && req.body.password.trim() !== '') {
-    const user = getUserByEmail(req.body.email.trim());
+    const user = helpers.getUserByEmail(req.body.email.trim(), users);
     if (user) {
       res.status(400).send("This email already exists.");      
     } else {
