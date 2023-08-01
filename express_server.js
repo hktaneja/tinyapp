@@ -25,7 +25,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // route definitions 
 app.get("/", (req, res) => {
-  res.send("Welcome!");
+  if (req.session.user_id) {
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
+  }
 });
 
 app.get("/login", (req, res) => {
@@ -66,8 +70,7 @@ app.get("/urls", (req, res) => {
     templateVars = { user: user, urls: userURLs };
     res.render("urls_index", templateVars);
   } else {
-      templateVars = { user: null, urls: userURLs };
-      res.redirect("/login");
+      res.status(400).send("You need to be logged in to view this page.");
   }
 });
 
@@ -87,22 +90,31 @@ app.get("/urls/:id", (req, res) => {
   let  templateVars = {};
   const user = getUserById(req.session.user_id);
   const url = urlDatabase[req.params.id];
-  if (user && url && url.userID === user.id) {
-    templateVars = { 
-      user: user, 
-      id: req.params.id,
-      longURL:url.longURL
-    };
-    res.render("urls_show", templateVars);
+  if (user) {
+    if (url && url.userID === user.id) {
+      templateVars = { 
+        user: user, 
+        id: req.params.id,
+        longURL:url.longURL
+      };
+      res.render("urls_show", templateVars);
+    } else {
+        res.status(400).send("URL doesn't exist or you don't have permission.");
+    } 
   } else {
-    templateVars = { user: null,id: req.params.id, longURL:url.longURL};
-    res.status(400).send("URL doesn't exist or you don't have permission.");
-  }  
+    res.status(400).send("Please Login first.");
+  }
+     
 });
 
-app.get("/u/:id", (req, res) => {  
-  const longURL = urlDatabase[req.params.id];  
-  res.redirect(longURL);
+app.get("/u/:id", (req, res) => {
+  const url = urlDatabase[req.params.id];
+  if (url) {
+    const longURL = url.longURL;
+    res.redirect(longURL);
+  } else {
+      res.status(400).send("URL not found");
+  }
 });
 
 // handle POST request for new id
